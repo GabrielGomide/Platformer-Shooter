@@ -31,3 +31,7 @@ Player can shoot bullets.
 ## Episode 06
 
 Player bullets make damage to enemy. When enemy's health hits 0 he dies.
+
+## Episode 07
+
+Bullets now collide with the map.
