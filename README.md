@@ -24,3 +24,7 @@ Added camera movement for the player.
 
 Added enemy that moves around and detects when player is in his field of view.
 
+## Episode 05
+
+Player can shoot bullets.
+

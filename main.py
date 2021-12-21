@@ -19,6 +19,7 @@ camera_walk = 8
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 RED = (255, 0, 0)
+GREEN = (0, 255, 0)
 
 tile_map = [
     '....................................................................',
@@ -43,6 +44,20 @@ def colliding(rect1, rect2):
             return True
     return False
 
+class Bullet:
+    def __init__(self, color, x, y, direction, fired_at):
+        self.color = color
+        self.x = x
+        self.y = y
+        self.direction = direction
+        self.fired_at = fired_at
+
+    def move(self):
+        if self.direction == 'L':
+            self.x -= 10
+        else:
+            self.x += 10
+
 class Character:
     def __init__(self, x, y, width, height, speed, image, looking):
         self.x = x
@@ -52,6 +67,16 @@ class Character:
         self.speed = speed
         self.image = image
         self.looking = looking
+        self.bullets = []
+
+    def shoot(self, color, y):
+        x = self.x
+        if self.looking == 'R':
+            x += self.width
+        else:
+            x -= 10
+        x += (camera_x * 50)
+        self.bullets.append(Bullet(GREEN, x, self.y + y, self.looking, pygame.time.get_ticks()))
 
     def would_collide(self, x, y, current_map):
         character_rect = pygame.Rect(self.x + x, self.y + y, self.width, self.height)
@@ -159,7 +184,14 @@ def draw_window(current_map, player, enemies):
                 else:
                     surface.blit(dirt, ((x - camera_x) * 50, y * 50))
 
+    for bullet in player.bullets:
+        rect = pygame.Rect(bullet.x - (camera_x * 50), bullet.y, 10, 3)
+        pygame.draw.rect(surface, bullet.color, rect)
+
     for enemy in enemies:
+        for bullet in enemy.bullets:
+            rect = pygame.Rect(bullet.x - (camera_x * 50), bullet.y, 10, 3)
+            pygame.draw.rect(surface, bullet.color, rect)
         surface.blit(enemy.image, (enemy.x - (camera_x * 50), enemy.y))
 
     surface.blit(player.image, (player.x, player.y))
@@ -185,8 +217,20 @@ def main():
         key_pressed = pygame.key.get_pressed()
         player.handle_movement(key_pressed)
 
+        for bullet in player.bullets:
+            if bullet.x + 10 < 0 or bullet.x > (len(tile_map[0]) * 50):
+                player.bullets.remove(bullet)
+            bullet.move()
+
+        if key_pressed[pygame.K_SPACE] and (len(player.bullets) == 0 or player.bullets[-1].fired_at + 200 < pygame.time.get_ticks()):
+            player.shoot(GREEN, 34)
+
         for enemy in enemies:
             enemy.handle_movement(player)
+            for bullet in enemy.bullets:
+                if bullet.x + 10 < 0 or bullet.x > (len(tile_map[0]) * 50):
+                    enemy.bullets.remove(bullet)
+                bullet.move()
 
         draw_window(tile_map, player, enemies)
 
