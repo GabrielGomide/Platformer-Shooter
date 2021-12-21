@@ -1,9 +1,16 @@
 import pygame
+import os
 
 pygame.init()
 width, height = 1200, 700
 surface = pygame.display.set_mode((width, height))
 pygame.display.set_caption('Cold Adventures')
+
+assets = os.path.join(os.getcwd(), 'Assets')
+background = pygame.transform.scale(pygame.image.load(os.path.join(assets, 'background.jpg')), (width, height))
+dirt = pygame.transform.scale(pygame.image.load(os.path.join(assets, 'dirt.png')), (50, 50))
+snow = pygame.transform.scale(pygame.image.load(os.path.join(assets, 'dirt_with_snow.png')), (50, 50))
+player_image = pygame.transform.scale(pygame.image.load(os.path.join(assets, 'player.png')), (47, 71))
 
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
@@ -33,12 +40,14 @@ def colliding(rect1, rect2):
     return False
 
 class Character:
-    def __init__(self, x, y, width, height, speed):
+    def __init__(self, x, y, width, height, speed, image, looking):
         self.x = x
         self.y = y
         self.width = width
         self.height = height
         self.speed = speed
+        self.image = image
+        self.looking = looking
 
     def would_collide(self, x, y, current_map):
         character_rect = pygame.Rect(self.x + x, self.y + y, self.width, self.height)
@@ -52,8 +61,8 @@ class Character:
         return False
 
 class Player(Character):
-    def __init__(self, x, y, width, height):
-        super().__init__(x, y, width, height, 5)
+    def __init__(self, x, y, width, height, image, looking):
+        super().__init__(x, y, width, height, 5, image, looking)
         self.jumping = False
         self.falling = False
         self.max_jumps = 25
@@ -76,9 +85,15 @@ class Player(Character):
             self.falling = False
 
         if key[pygame.K_a] and not(self.would_collide(-self.speed, 0, tile_map)):
+            if self.looking != 'L':
+                self.looking = 'L'
+                self.image = pygame.transform.flip(self.image, True, False)
             self.x -= self.speed
 
         if key[pygame.K_d] and not(self.would_collide(self.speed, 0, tile_map)):
+            if self.looking != 'R':
+                self.looking = 'R'
+                self.image = pygame.transform.flip(self.image, True, False)
             self.x += self.speed
 
         if key[pygame.K_w] and not(self.jumping) and not(self.falling):
@@ -86,16 +101,17 @@ class Player(Character):
 
 
 def draw_window(current_map, player):
-    surface.fill(BLACK)
+    surface.blit(background, (0, 0))
 
     for y in range(len(current_map)):
         for x in range(len(current_map[y])):
             if current_map[y][x] == 'X':
-                rect = pygame.Rect(x * 50, y * 50, 50, 50)
-                pygame.draw.rect(surface, WHITE, rect)
+                if y != 0 and current_map[y - 1][x] != 'X':
+                    surface.blit(snow, (x * 50, y * 50))
+                else:
+                    surface.blit(dirt, (x * 50, y * 50))
 
-    player_rect = pygame.Rect(player.x, player.y, player.width, player.height)
-    pygame.draw.rect(surface, RED, player_rect)
+    surface.blit(player.image, (player.x, player.y))
 
     pygame.display.update()
 
@@ -104,7 +120,7 @@ def main():
     clock = pygame.time.Clock()
     fps = 60
 
-    player = Player(50, 500, 50, 50)
+    player = Player(50, 479, 47, 71, player_image, 'R')
 
     while run:
         clock.tick(fps)

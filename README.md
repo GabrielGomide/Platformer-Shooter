@@ -10,5 +10,9 @@ You can watch all 8 episodes in english or portuguese on my Youtube channel.
 
 ## Episode 01
 
-The player is a red square moving around a black and white map with collision detection.
+The player is a red square moving around a black and white map with collision detection and gravity.
+
+## Episode 02
+
+Added textures, background image and player image.
 
