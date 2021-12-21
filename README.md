@@ -16,3 +16,7 @@ The player is a red square moving around a black and white map with collision de
 
 Added textures, background image and player image.
 
+## Episode 03
+
+Added camera movement for the player.
+
