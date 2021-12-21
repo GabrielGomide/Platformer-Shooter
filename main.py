@@ -1,7 +1,9 @@
 import pygame
 import os
+import time
 
 pygame.init()
+pygame.font.init()
 width, height = 1200, 700
 surface = pygame.display.set_mode((width, height))
 pygame.display.set_caption('Cold Adventures')
@@ -12,9 +14,12 @@ dirt = pygame.transform.scale(pygame.image.load(os.path.join(assets, 'dirt.png')
 snow = pygame.transform.scale(pygame.image.load(os.path.join(assets, 'dirt_with_snow.png')), (50, 50))
 player_image = pygame.transform.scale(pygame.image.load(os.path.join(assets, 'player.png')), (47, 71))
 enemy_image = pygame.transform.scale(pygame.image.load(os.path.join(assets, 'enemy.png')), (47, 71))
+boss_image = pygame.transform.scale(pygame.image.load(os.path.join(assets, 'boss.png')), (47, 75))
 
 camera_x = 0
 camera_walk = 8
+
+font = pygame.font.SysFont('Comic Sans MS', 100)
 
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
@@ -83,6 +88,11 @@ class Bullet:
                 return enemy
         return False
 
+    def touched_player(self, player):
+        player_rect = pygame.Rect(player.x + (camera_x * 50), player.y, player.width, player.height)
+        bullet_rect = pygame.Rect(self.x, self.y, 10, 3)
+        return colliding(player_rect, bullet_rect)
+
 class Character:
     def __init__(self, x, y, width, height, speed, image, looking, health):
         self.x = x
@@ -97,14 +107,17 @@ class Character:
         self.last_bullet = None
         self.bullets = []
 
-    def shoot(self, color, y, damage):
+    def shoot(self, color, y, damage, camera=False):
         x = self.x
         if self.looking == 'R':
             x += self.width
         else:
             x -= 10
-        x += (camera_x * 50)
-        bullet = Bullet(GREEN, x, self.y + y, self.looking, pygame.time.get_ticks(), damage)
+
+        if camera:
+            x += (camera_x * 50)
+
+        bullet = Bullet(color, x, self.y + y, self.looking, pygame.time.get_ticks(), damage)
         x = 10 if bullet.direction == 'R' else (-10)
         
         if not bullet.would_collide(x, tile_map):
@@ -177,7 +190,7 @@ class Enemy(Character):
         self.range = r
 
     def handle_movement(self, player):
-        if player.x >= (self.initial_x - self.range) - (camera_x * 50) and player.x <= (self.initial_x + self.range * 2) - (camera_x * 50) and self.y == player.y:
+        if player.x >= (self.initial_x - self.range) - (camera_x * 50) and player.x <= (self.initial_x + self.range * 2) - (camera_x * 50) and (self.y == player.y or self.y + 4 == player.y):
             enemy_x = (self.x - (camera_x * 50))
             if enemy_x <= player.x:
                 if self.looking != 'R':
@@ -187,6 +200,9 @@ class Enemy(Character):
                 if self.looking != 'L':
                     self.looking = 'L'
                     self.image = pygame.transform.flip(self.image, True, False)
+
+            if self.last_bullet == None or self.last_bullet.fired_at + 600 < pygame.time.get_ticks():
+                self.shoot(RED, 34, 15)
         else:
             if self.looking == 'R':
                 self.x += self.speed
@@ -241,10 +257,16 @@ def main():
     clock = pygame.time.Clock()
     fps = 60
 
+    global camera_x
+    camera_x = 0
+
     player = Player(50, 479, 47, 71, player_image, 'R', 100)
 
     enemies = []
     enemies.append(Enemy(500, 379, 47, 71, 3, enemy_image, 'R', 200, 50))
+    enemies.append(Enemy(1200, 479, 47, 71, 3, enemy_image, 'R', 200, 70))
+    enemies.append(Enemy(2000, 229, 47, 71, 3, enemy_image, 'R', 300, 70))
+    enemies.append(Enemy(2900, 475, 47, 75, 3, boss_image, 'R', 300, 120))
 
     while run:
         clock.tick(fps)
@@ -272,7 +294,7 @@ def main():
                     enemies.remove(enemy)
 
         if key_pressed[pygame.K_SPACE] and (player.last_bullet == None or player.last_bullet.fired_at + 200 < pygame.time.get_ticks()):
-            player.shoot(GREEN, 34, 25)
+            player.shoot(GREEN, 34, 25, camera=True)
 
         for enemy in enemies:
             enemy.handle_movement(player)
@@ -285,7 +307,25 @@ def main():
                 if bullet.would_collide(x, tile_map):
                     enemy.bullets.remove(bullet)
 
+                if bullet.touched_player(player):
+                    player.health -= bullet.damage
+                    enemy.bullets.remove(bullet)
+
+                    if player.health <= 0:
+                        main()
+                        return
+
         draw_window(tile_map, player, enemies)
+
+        if len(enemies) == 0:
+            surface.fill(WHITE)
+            text = font.render('Congratulations, you won!!!', False, DARKGREEN)
+            text_rect = text.get_rect(center=(width/2, height/2))
+            surface.blit(text, text_rect)
+            pygame.display.update()
+            time.sleep(5)
+            return
 
 if __name__ == '__main__':
     main()
+

@@ -7,6 +7,7 @@ https://www.youtube.com/channel/UCmuUlK9iolsuGBy_7ZuzqIQ
 <br>
 You can watch all 8 episodes in english or portuguese on my Youtube channel.
 
+![Screenshot of the game](https://github.com/GabrielGomide/Platformer-Shooter/blob/master/screenshot.png)
 
 ## Episode 01
 
@@ -35,3 +36,19 @@ Player bullets make damage to enemy. When enemy's health hits 0 he dies.
 ## Episode 07
 
 Bullets now collide with the map.
+
+## Episode 08
+
+Enemies can shoot.
+<br>
+Player dies when his health hits 0.
+<br>
+Boss created.
+<br>
+Game resets when player dies.
+<br>
+End screen if all enemies are killed.
+<br>
+
+
+
