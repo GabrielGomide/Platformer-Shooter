@@ -20,6 +20,7 @@ BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 RED = (255, 0, 0)
 GREEN = (0, 255, 0)
+DARKGREEN = (0, 180, 0)
 
 tile_map = [
     '....................................................................',
@@ -45,12 +46,13 @@ def colliding(rect1, rect2):
     return False
 
 class Bullet:
-    def __init__(self, color, x, y, direction, fired_at):
+    def __init__(self, color, x, y, direction, fired_at, damage):
         self.color = color
         self.x = x
         self.y = y
         self.direction = direction
         self.fired_at = fired_at
+        self.damage = damage
 
     def move(self):
         if self.direction == 'L':
@@ -58,8 +60,16 @@ class Bullet:
         else:
             self.x += 10
 
+    def touched_enemy(self, enemies):
+        for enemy in enemies:
+            enemy_rect = pygame.Rect(enemy.x, enemy.y, enemy.width, enemy.height)
+            bullet_rect = pygame.Rect(self.x, self.y, 10, 3)
+            if colliding(enemy_rect, bullet_rect):
+                return enemy
+        return False
+
 class Character:
-    def __init__(self, x, y, width, height, speed, image, looking):
+    def __init__(self, x, y, width, height, speed, image, looking, health):
         self.x = x
         self.y = y
         self.width = width
@@ -67,16 +77,18 @@ class Character:
         self.speed = speed
         self.image = image
         self.looking = looking
+        self.max_health = health
+        self.health = health
         self.bullets = []
 
-    def shoot(self, color, y):
+    def shoot(self, color, y, damage):
         x = self.x
         if self.looking == 'R':
             x += self.width
         else:
             x -= 10
         x += (camera_x * 50)
-        self.bullets.append(Bullet(GREEN, x, self.y + y, self.looking, pygame.time.get_ticks()))
+        self.bullets.append(Bullet(GREEN, x, self.y + y, self.looking, pygame.time.get_ticks(), damage))
 
     def would_collide(self, x, y, current_map):
         character_rect = pygame.Rect(self.x + x, self.y + y, self.width, self.height)
@@ -90,8 +102,8 @@ class Character:
         return False
 
 class Player(Character):
-    def __init__(self, x, y, width, height, image, looking):
-        super().__init__(x, y, width, height, 5, image, looking)
+    def __init__(self, x, y, width, height, image, looking, health):
+        super().__init__(x, y, width, height, 5, image, looking, health)
         self.jumping = False
         self.falling = False
         self.max_jumps = 25
@@ -145,8 +157,8 @@ class Player(Character):
             self.jumping = True
 
 class Enemy(Character):
-    def __init__(self, x, y, width, height, speed, image, looking, r):
-        super().__init__(x, y, width, height, speed, image, looking)
+    def __init__(self, x, y, width, height, speed, image, looking, r, health):
+        super().__init__(x, y, width, height, speed, image, looking, health)
         self.initial_x = x
         self.range = r
 
@@ -192,7 +204,19 @@ def draw_window(current_map, player, enemies):
         for bullet in enemy.bullets:
             rect = pygame.Rect(bullet.x - (camera_x * 50), bullet.y, 10, 3)
             pygame.draw.rect(surface, bullet.color, rect)
+
+        enemy_health_background = pygame.Rect(enemy.x - (camera_x * 50), enemy.y - 20, enemy.width, 10)
+        enemy_health_bar = pygame.Rect(enemy.x - (camera_x * 50), enemy.y - 20, enemy.width * (enemy.health / enemy.max_health), 10)
+
+        pygame.draw.rect(surface, RED, enemy_health_background)
+        pygame.draw.rect(surface, DARKGREEN, enemy_health_bar)
         surface.blit(enemy.image, (enemy.x - (camera_x * 50), enemy.y))
+
+    player_health_background = pygame.Rect(player.x, player.y - 20, player.width, 10)
+    player_health_bar = pygame.Rect(player.x, player.y - 20, player.width * (player.health / player.max_health), 10)
+
+    pygame.draw.rect(surface, RED, player_health_background)
+    pygame.draw.rect(surface, DARKGREEN, player_health_bar)
 
     surface.blit(player.image, (player.x, player.y))
 
@@ -203,10 +227,10 @@ def main():
     clock = pygame.time.Clock()
     fps = 60
 
-    player = Player(50, 479, 47, 71, player_image, 'R')
+    player = Player(50, 479, 47, 71, player_image, 'R', 100)
 
     enemies = []
-    enemies.append(Enemy(500, 379, 47, 71, 3, enemy_image, 'R', 200))
+    enemies.append(Enemy(500, 379, 47, 71, 3, enemy_image, 'R', 200, 50))
 
     while run:
         clock.tick(fps)
@@ -221,9 +245,15 @@ def main():
             if bullet.x + 10 < 0 or bullet.x > (len(tile_map[0]) * 50):
                 player.bullets.remove(bullet)
             bullet.move()
+            enemy = bullet.touched_enemy(enemies)
+            if enemy:
+                enemy.health -= bullet.damage
+                player.bullets.remove(bullet)
+                if enemy.health <= 0:
+                    enemies.remove(enemy)
 
         if key_pressed[pygame.K_SPACE] and (len(player.bullets) == 0 or player.bullets[-1].fired_at + 200 < pygame.time.get_ticks()):
-            player.shoot(GREEN, 34)
+            player.shoot(GREEN, 34, 25)
 
         for enemy in enemies:
             enemy.handle_movement(player)
