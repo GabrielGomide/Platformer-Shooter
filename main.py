@@ -11,6 +11,7 @@ background = pygame.transform.scale(pygame.image.load(os.path.join(assets, 'back
 dirt = pygame.transform.scale(pygame.image.load(os.path.join(assets, 'dirt.png')), (50, 50))
 snow = pygame.transform.scale(pygame.image.load(os.path.join(assets, 'dirt_with_snow.png')), (50, 50))
 player_image = pygame.transform.scale(pygame.image.load(os.path.join(assets, 'player.png')), (47, 71))
+enemy_image = pygame.transform.scale(pygame.image.load(os.path.join(assets, 'enemy.png')), (47, 71))
 
 camera_x = 0
 camera_walk = 8
@@ -20,20 +21,20 @@ WHITE = (255, 255, 255)
 RED = (255, 0, 0)
 
 tile_map = [
-    '.......................................................',
-    '.......................................................',
-    '.......................................................',
-    '.......................................................',
-    '.......................................................',
-    '.......................................................',
-    '.......................................................',
-    '.............................XXXXXX....................',
-    '...........................XXXXXXXXXX..................',
-    '.........XXXXXXX..........XXXXXXXXXXXX.................',
-    '.........................XXXXXXXXXXXXXXX...............',
-    'XXXXXXXX.........XXXXXXXXXXXXXXXXXXXXXXXX..............',
-    'XXXXXXXXXXX...XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
-    'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'
+    '....................................................................',
+    '....................................................................',
+    '....................................................................',
+    '....................................................................',
+    '....................................................................',
+    '....................................................................',
+    '........................................XXXXXXX.....................',
+    '.....................................XXXXXXXXXXXX...................',
+    '...................................XXXXXXXXXXXXXXXX.................',
+    '.........XXXXXXX..................XXXXXXXXXXXXXXXXXXXX..............',
+    '................................XXXXXXXXXXXXXXXXXXXXXXXX............',
+    'XXXXXXXX.........XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
+    'XXXXXXXXXXX...XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
+    'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'
 ]
 
 def colliding(rect1, rect2):
@@ -97,8 +98,8 @@ class Player(Character):
                 self.x -= self.speed
             if (self.x % (camera_walk * 50) == 0 or self.x - self.speed < 0) and camera_x - camera_walk >= 0:
                 camera_x -= camera_walk
-                self.x += (camera_walk * 50)
-            elif (self.x % (camera_walk * 50) == 0 or self.x - self.speed < 0) and camera_x != 0:
+                self.x += camera_walk * 50
+            elif (self.x % (camera_walk * 50) == 0 or self.x - self.speed < 0):
                 self.x += camera_x * 50
                 camera_x = 0
 
@@ -110,16 +111,44 @@ class Player(Character):
                 self.x += self.speed
             if (self.x % (camera_walk * 50) == 0 or self.x + self.speed + self.width > width) and camera_x + camera_walk + 24 <= len(tile_map[0]):
                 camera_x += camera_walk
-                self.x -= (camera_walk * 50)
-            elif (self.x % (camera_walk * 50) == 0 or self.x + self.speed + self.width > width) and camera_x != (len(tile_map[0]) - 24):
+                self.x -= camera_walk * 50
+            elif (self.x % (camera_walk * 50) == 0 or self.x + self.speed + self.width > width):
                 self.x -= ((len(tile_map[0]) - 24) - camera_x) * 50
                 camera_x = len(tile_map[0]) - 24
 
         if key[pygame.K_w] and not(self.jumping) and not(self.falling):
             self.jumping = True
 
+class Enemy(Character):
+    def __init__(self, x, y, width, height, speed, image, looking, r):
+        super().__init__(x, y, width, height, speed, image, looking)
+        self.initial_x = x
+        self.range = r
 
-def draw_window(current_map, player):
+    def handle_movement(self, player):
+        if player.x >= (self.initial_x - self.range) - (camera_x * 50) and player.x <= (self.initial_x + self.range * 2) - (camera_x * 50) and self.y == player.y:
+            enemy_x = (self.x - (camera_x * 50))
+            if enemy_x <= player.x:
+                if self.looking != 'R':
+                    self.looking = 'R'
+                    self.image = pygame.transform.flip(self.image, True, False)
+            else:
+                if self.looking != 'L':
+                    self.looking = 'L'
+                    self.image = pygame.transform.flip(self.image, True, False)
+        else:
+            if self.looking == 'R':
+                self.x += self.speed
+                if self.x + self.speed > self.initial_x + self.range:
+                    self.image = pygame.transform.flip(self.image, True, False)
+                    self.looking = 'L'
+            else:
+                self.x -= self.speed
+                if self.x - self.speed < self.initial_x:
+                    self.image = pygame.transform.flip(self.image, True, False)
+                    self.looking = 'R'
+
+def draw_window(current_map, player, enemies):
     surface.blit(background, (0, 0))
 
     for y in range(len(current_map)):
@@ -129,6 +158,9 @@ def draw_window(current_map, player):
                     surface.blit(snow, ((x - camera_x) * 50, y * 50))
                 else:
                     surface.blit(dirt, ((x - camera_x) * 50, y * 50))
+
+    for enemy in enemies:
+        surface.blit(enemy.image, (enemy.x - (camera_x * 50), enemy.y))
 
     surface.blit(player.image, (player.x, player.y))
 
@@ -141,6 +173,9 @@ def main():
 
     player = Player(50, 479, 47, 71, player_image, 'R')
 
+    enemies = []
+    enemies.append(Enemy(500, 379, 47, 71, 3, enemy_image, 'R', 200))
+
     while run:
         clock.tick(fps)
         for event in pygame.event.get():
@@ -150,7 +185,10 @@ def main():
         key_pressed = pygame.key.get_pressed()
         player.handle_movement(key_pressed)
 
-        draw_window(tile_map, player)
+        for enemy in enemies:
+            enemy.handle_movement(player)
+
+        draw_window(tile_map, player, enemies)
 
 if __name__ == '__main__':
     main()

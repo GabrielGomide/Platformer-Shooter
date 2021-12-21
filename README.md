@@ -20,3 +20,7 @@ Added textures, background image and player image.
 
 Added camera movement for the player.
 
+## Episode 04
+
+Added enemy that moves around and detects when player is in his field of view.
+
