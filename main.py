@@ -12,25 +12,28 @@ dirt = pygame.transform.scale(pygame.image.load(os.path.join(assets, 'dirt.png')
 snow = pygame.transform.scale(pygame.image.load(os.path.join(assets, 'dirt_with_snow.png')), (50, 50))
 player_image = pygame.transform.scale(pygame.image.load(os.path.join(assets, 'player.png')), (47, 71))
 
+camera_x = 0
+camera_walk = 8
+
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 RED = (255, 0, 0)
 
 tile_map = [
-    '........................',
-    '........................',
-    '........................',
-    '........................',
-    '........................',
-    '........................',
-    '........................',
-    '........................',
-    '........................',
-    '.........XXXXXXX........',
-    '........................',
-    'XXXXXXXX.........XXXXXXX',
-    'XXXXXXXXXXX...XXXXXXXXXX',
-    'XXXXXXXXXXXXXXXXXXXXXXXX'
+    '.......................................................',
+    '.......................................................',
+    '.......................................................',
+    '.......................................................',
+    '.......................................................',
+    '.......................................................',
+    '.......................................................',
+    '.............................XXXXXX....................',
+    '...........................XXXXXXXXXX..................',
+    '.........XXXXXXX..........XXXXXXXXXXXX.................',
+    '.........................XXXXXXXXXXXXXXX...............',
+    'XXXXXXXX.........XXXXXXXXXXXXXXXXXXXXXXXX..............',
+    'XXXXXXXXXXX...XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
+    'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'
 ]
 
 def colliding(rect1, rect2):
@@ -53,9 +56,9 @@ class Character:
         character_rect = pygame.Rect(self.x + x, self.y + y, self.width, self.height)
 
         for y in range(len(current_map)):
-            for x in range(len(current_map[y])):
+            for x in range(camera_x, len(current_map[y])):
                 if current_map[y][x] == 'X':
-                    rect = pygame.Rect(x * 50, y * 50, 50, 50)
+                    rect = pygame.Rect((x - camera_x) * 50, y * 50, 50, 50)
                     if colliding(character_rect, rect):
                         return True
         return False
@@ -69,6 +72,8 @@ class Player(Character):
         self.jumps_left = self.max_jumps
 
     def handle_movement(self, key):
+        global camera_x
+
         if self.jumping:
             if not(self.would_collide(0, -self.speed, tile_map)) and self.jumps_left != 0:
                 self.y -= self.speed
@@ -88,13 +93,27 @@ class Player(Character):
             if self.looking != 'L':
                 self.looking = 'L'
                 self.image = pygame.transform.flip(self.image, True, False)
-            self.x -= self.speed
+            if self.x - self.speed >= 0:
+                self.x -= self.speed
+            if (self.x % (camera_walk * 50) == 0 or self.x - self.speed < 0) and camera_x - camera_walk >= 0:
+                camera_x -= camera_walk
+                self.x += (camera_walk * 50)
+            elif (self.x % (camera_walk * 50) == 0 or self.x - self.speed < 0) and camera_x != 0:
+                self.x += camera_x * 50
+                camera_x = 0
 
         if key[pygame.K_d] and not(self.would_collide(self.speed, 0, tile_map)):
             if self.looking != 'R':
                 self.looking = 'R'
                 self.image = pygame.transform.flip(self.image, True, False)
-            self.x += self.speed
+            if self.x + self.speed + self.width <= width:
+                self.x += self.speed
+            if (self.x % (camera_walk * 50) == 0 or self.x + self.speed + self.width > width) and camera_x + camera_walk + 24 <= len(tile_map[0]):
+                camera_x += camera_walk
+                self.x -= (camera_walk * 50)
+            elif (self.x % (camera_walk * 50) == 0 or self.x + self.speed + self.width > width) and camera_x != (len(tile_map[0]) - 24):
+                self.x -= ((len(tile_map[0]) - 24) - camera_x) * 50
+                camera_x = len(tile_map[0]) - 24
 
         if key[pygame.K_w] and not(self.jumping) and not(self.falling):
             self.jumping = True
@@ -104,12 +123,12 @@ def draw_window(current_map, player):
     surface.blit(background, (0, 0))
 
     for y in range(len(current_map)):
-        for x in range(len(current_map[y])):
+        for x in range(camera_x, len(current_map[y])):
             if current_map[y][x] == 'X':
                 if y != 0 and current_map[y - 1][x] != 'X':
-                    surface.blit(snow, (x * 50, y * 50))
+                    surface.blit(snow, ((x - camera_x) * 50, y * 50))
                 else:
-                    surface.blit(dirt, (x * 50, y * 50))
+                    surface.blit(dirt, ((x - camera_x) * 50, y * 50))
 
     surface.blit(player.image, (player.x, player.y))
 
