@@ -8,3 +8,7 @@ https://www.youtube.com/channel/UCmuUlK9iolsuGBy_7ZuzqIQ
 You can watch all 8 episodes in english or portuguese on my Youtube channel.
 
 
+## Episode 01
+
+The player is a red square moving around a black and white map with collision detection.
+
