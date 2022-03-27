@@ -50,5 +50,7 @@ Game resets when player dies.
 End screen if all enemies are killed.
 <br>
 
+## Bonus Episode
 
+Added shooting sound
 
