@@ -4,6 +4,7 @@ import time
 
 pygame.init()
 pygame.font.init()
+pygame.mixer.init()
 width, height = 1200, 700
 surface = pygame.display.set_mode((width, height))
 pygame.display.set_caption('Cold Adventures')
@@ -15,6 +16,8 @@ snow = pygame.transform.scale(pygame.image.load(os.path.join(assets, 'dirt_with_
 player_image = pygame.transform.scale(pygame.image.load(os.path.join(assets, 'player.png')), (47, 71))
 enemy_image = pygame.transform.scale(pygame.image.load(os.path.join(assets, 'enemy.png')), (47, 71))
 boss_image = pygame.transform.scale(pygame.image.load(os.path.join(assets, 'boss.png')), (47, 75))
+
+shot_sound = pygame.mixer.Sound(os.path.join(assets, 'shot.wav'))
 
 camera_x = 0
 camera_walk = 8
@@ -121,6 +124,8 @@ class Character:
         x = 10 if bullet.direction == 'R' else (-10)
         
         if not bullet.would_collide(x, tile_map):
+            pygame.mixer.Sound.play(shot_sound)
+            pygame.mixer.music.stop()
             self.bullets.append(bullet)
             self.last_bullet = bullet
 
